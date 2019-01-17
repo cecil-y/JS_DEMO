@@ -11,8 +11,9 @@
             height: 200px;
             border: 1px grey dashed;
         }
+
         #dropZone:hover {
-            border: 1px red dashed;
+            border: 2px red solid;
         }
     </style>
 </head>
@@ -21,18 +22,97 @@
 <div>
     <p>文件上传框</p>
     <div id="dropZone"></div>
+    <form enctype="multipart/form-data" method="post">
+        <input type="file" style="display: none" id="dropZoneFile"/>
+    </form>
 </div>
 
 <div>
     <p>文件按钮上传</p>
     <form enctype="multipart/form-data" method="post">
         <label for="multiFile">多文件上传</label><br/>
-        <input id="multiFile" type="file"/>
+        <input id="multiFile" type="file" multiple/><br/>
+        <!--IE11不兼容-->
+        <label for="directoryFile">文件夹上传</label><br/>
+        <input id="directoryFile" type="file" webkitdirectory/><br/>
+        <input type="button" value="IE浏览器" onclick="browseFolder('path')"/>
+        <input type="hidden" id="path"/>
     </form>
 </div>
 
-<script>
+拖拽：多文件可以、文件夹不行 ->获得fileList
+点击上传：chrome、IE都可以，IE不能传文件夹 ->获得fileList
 
+<script>
+    // 文件上传框
+    // 1.阻止默认行为
+    $(document).on({
+        dragleave: function (e) {        //拖离
+            e.preventDefault();
+            e.stopPropagation();
+        },
+        drop: function (e) {             //托后放
+            e.preventDefault();
+            e.stopPropagation();
+        },
+        dragenter: function (e) {        //拖进
+            e.preventDefault();
+            e.stopPropagation();
+        },
+        dragover: function (e) {           //拖来拖去
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+    // 2.拖拽事件
+    let box = document.getElementById('dropZone');
+    box.addEventListener("drop", function (e) {
+        e.preventDefault();
+
+        //仅只能拖拽多文件--文件夹不行   IE.CHROME都行
+        let files = e.dataTransfer.files;
+        console.log(files);
+        //检测是否是拖拽文件到页面的操作
+        if (files.length == 0) {
+            console.log("不是拖拽文件到页面的操作");
+        }
+    }, false);
+
+
+    //文件按钮上传
+    $("#multiFile").on("change", function (e) {
+        let obj = e.currentTarget;
+        let files = obj.files;
+        //files里面就是多个选中的文件
+        console.log(files);
+    });
+    $("#directoryFile").on("change", function (e) {
+        let obj = e.currentTarget;
+        let files = obj.files;
+        console.log(files);
+    });
+
+    //文件夹上传IE解决方案--报错：没有权限
+    function browseFolder(path) {
+        try {
+            let message = 'IE浏览器文件夹上传';     //提示框信息
+            let shell = new ActiveXObject("Shell.Application");
+            let folder = shell.BrowseForFolder(0, message, 64, 17);        //目录起始位置：我的电脑
+            // let folder = shell.BrowseForFolder(0,message,0);            //目录其实位置：桌面
+            if (folder != null) {
+                let objs = folder.items();    //返回folderItems对象
+                let obj = folder.item();     //返回folderitem对象
+                let path = folder.path;       //返回路径
+                if (objs.charAt(objs.length - 1) != "\\") {
+                    objs = objs + "\\";
+                }
+                $("#path").val(objs);
+                return objs;
+            }
+        } catch (e) {
+            console.log(e.message);
+        }
+    }
 
 </script>
 
