@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>fileupload-directory</title>
     <script src="../../plugins/jquery/jquery.js"></script>
+    <script src="../../plugins/spark-md5/spark-md5.js"></script>
 
     <style>
         #dropZone {
@@ -20,7 +21,7 @@
 <body>
 
 <div>
-    <p>文件上传框</p>
+    <p>文件拖拽上传框</p>
     <div id="dropZone"></div>
     <form enctype="multipart/form-data" method="post">
         <input type="file" style="display: none" id="dropZoneFile"/>
@@ -44,7 +45,7 @@
 <p>点击上传：chrome、IE都可以，IE不能传文件夹 ->获得fileList</p>
 
 <script>
-    // 文件上传框
+    // 文件拖拽上传框
     // 1.阻止默认行为
     $(document).on({
         dragleave: function (e) {        //拖离
@@ -76,6 +77,8 @@
         if (files.length == 0) {
             console.log("不是拖拽文件到页面的操作");
         }
+
+        calculateMD5(files);
     }, false);
 
 
@@ -90,6 +93,8 @@
         let obj = e.currentTarget;
         let files = obj.files;
         console.log(files);
+
+        calculateMD5(files);
     });
 
     //文件夹上传IE解决方案--报错：没有权限
@@ -111,6 +116,54 @@
             }
         } catch (e) {
             console.log(e.message);
+        }
+    }
+
+    //计算文件md5--支持多文件--支持IE
+    function calculateMD5(files) {
+        let running = true;
+
+        for (let i = 0; i < files.length; i++) {
+            let slice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
+            let file = files[i];
+            let chunkSize = 2097152;        //分片，每片2MB
+            let chunks = Math.ceil(file.size / chunkSize);
+            let currentChunk = 0;
+            let spark = new SparkMD5.ArrayBuffer();
+            let reader = new FileReader();
+
+            reader.onload = function (e) {
+                spark.append(e.target.result);
+                currentChunk += 1;
+                if (currentChunk < chunks) {
+                    loadNext();
+                } else {
+                    running = false;
+                    console.log("Finished loading");
+                    console.log("file: " + file.name);
+                    console.log("spark.end(): " + spark.end());
+                    // return spark.end();
+                }
+            };
+            reader.onabort = function () {
+                console.log("读取文件发生中断");
+            };
+            reader.onerror = function (e) {
+                console.log("读取文件发生错误", e);
+            };
+            reader.onprogress = function () {
+                let time = new Date();
+                console.log("正在读取..." + time.getHours() + "时" + time.getMinutes() + "分" + time.getSeconds() + "秒");
+            };
+
+            function loadNext() {
+                let start = currentChunk * chunkSize;
+                let end = start + chunkSize >= file.size ? file.size : start + chunkSize;
+
+                reader.readAsArrayBuffer(slice.call(file, start, end));
+            }
+            running = true;
+            loadNext();
         }
     }
 
