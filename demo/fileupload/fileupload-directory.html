@@ -121,7 +121,6 @@
 
     //计算文件md5--支持多文件--支持IE
     function calculateMD5(files) {
-        let running = true;
 
         for (let i = 0; i < files.length; i++) {
             let slice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
@@ -138,7 +137,6 @@
                 if (currentChunk < chunks) {
                     loadNext();
                 } else {
-                    running = false;
                     console.log("Finished loading");
                     console.log("file: " + file.name);
                     console.log("spark.end(): " + spark.end());
@@ -162,7 +160,6 @@
 
                 reader.readAsArrayBuffer(slice.call(file, start, end));
             }
-            running = true;
             loadNext();
         }
     }
