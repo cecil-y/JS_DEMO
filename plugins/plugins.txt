@@ -3,3 +3,5 @@ npm install jquery;
 npm install crypto-js;
 计算文件md5值
 npm install --save spark-md5;
+计算文件SHA值
+npm install jssha;

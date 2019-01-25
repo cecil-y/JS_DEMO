@@ -121,11 +121,13 @@
 
     //计算文件md5--支持多文件--支持IE
     function calculateMD5(files) {
+        getTime();
 
         for (let i = 0; i < files.length; i++) {
             let slice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
             let file = files[i];
-            let chunkSize = 2097152;        //分片，每片2MB
+            // let chunkSize = 2097152;        //分片，每片2MB
+            let chunkSize = 50 * 1024 * 1024;
             let chunks = Math.ceil(file.size / chunkSize);
             let currentChunk = 0;
             let spark = new SparkMD5.ArrayBuffer();
@@ -140,6 +142,7 @@
                     console.log("Finished loading");
                     console.log("file: " + file.name);
                     console.log("spark.end(): " + spark.end());
+                    getTime();
                     // return spark.end();
                 }
             };
@@ -150,8 +153,7 @@
                 console.log("读取文件发生错误", e);
             };
             reader.onprogress = function () {
-                let time = new Date();
-                console.log("正在读取..." + time.getHours() + "时" + time.getMinutes() + "分" + time.getSeconds() + "秒");
+                // getTime();
             };
 
             function loadNext() {
@@ -160,8 +162,14 @@
 
                 reader.readAsArrayBuffer(slice.call(file, start, end));
             }
+
             loadNext();
         }
+    }
+
+    function getTime() {
+        let time = new Date();
+        console.log("正在读取..." + time.getHours() + "时" + time.getMinutes() + "分" + time.getSeconds() + "秒" + time.getMilliseconds() + "毫秒");
     }
 
 </script>
