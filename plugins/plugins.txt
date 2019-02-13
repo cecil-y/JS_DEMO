@@ -1,5 +1,7 @@
 npm install jquery;
-加解密、计算hash值
+加解密
 npm install crypto-js;
 计算文件md5值
 npm install --save spark-md5;
+计算文件SHA值
+npm install jssha;

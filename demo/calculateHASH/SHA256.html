@@ -72,112 +72,78 @@
     function calculateSHA256(files) {
         console.log("开始：" + getTime());
 
-        // for (let i = 0; i < files.length; i++) {
-        //      //对大文件很不友好
-        //     let file = files[i];
-        //     let reader = new FileReader();
-        //     reader.readAsArrayBuffer(file);
-        //
-        //     reader.onload = function (e) {
-        //         let data = CryptoJS.lib.WordArray.create(e.target.result);
-        //         let hash = CryptoJS.SHA256(data).toString();
-        //         console.log("hash: "+hash);
-        //         console.log("结束: " + getTime());
-        //     };
-        //     reader.onabort = function () {
-        //         console.log("读取文件发生中断");
-        //     };
-        //     reader.onprogress = function () {
-        //         console.log("正在计算...");
-        //     };
-        // }
-
         for (let i = 0; i < files.length; i++) {
-            let slice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
+             //对大文件很不友好
             let file = files[i];
-            let chunkSize = 50 * 1024 * 1024;
-            let chunks = Math.ceil(file.size / chunkSize);
-            let currentChunk = 0;
             let reader = new FileReader();
-            let sha256 = CryptoJS.algo.SHA256.create();
+            reader.readAsArrayBuffer(file);
 
             reader.onload = function (e) {
-                let wordArray = arrayBufferToWordArray(e.target.result);
-                sha256.update(wordArray);
-                currentChunk += 1;
-                if (currentChunk < chunks) {
-                    loadNext();
-                } else {
-                    console.log("Finished loading, file: " + file.name);
-                    let hash = sha256.finalize();
-                    console.log("hash: " + hash);
-                    console.log("结束: " + getTime());
-                }
+                let data = CryptoJS.lib.WordArray.create(e.target.result);
+                let hash = CryptoJS.SHA256(data).toString();
+                console.log("hash: "+hash);
+                console.log("结束: " + getTime());
             };
             reader.onabort = function () {
                 console.log("读取文件发生中断");
             };
-            reader.onerror = function (e) {
-                console.log("读取文件发生错误", e);
-            };
             reader.onprogress = function () {
                 console.log("正在计算...");
             };
-
-            function loadNext() {
-                let start = currentChunk * chunkSize;
-                let end = start + chunkSize >= file.size ? file.size : start + chunkSize;
-
-                reader.readAsArrayBuffer(slice.call(file, start, end));
-            }
-
-            loadNext();
-
         }
 
-        function swapendian32(val) {
-            return (((val & 0xFF) << 24)
-                | ((val & 0xFF00) << 8)
-                | ((val >> 8) & 0xFF00)
-                | ((val >> 24) & 0xFF)) >>> 0;
+        // //还未能用
+        // for (let i = 0; i < files.length; i++) {
+        //     let slice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
+        //     let file = files[i];
+        //     let chunkSize = 50 * 1024 * 1024;
+        //     let chunks = Math.ceil(file.size / chunkSize);
+        //     let currentChunk = 0;
+        //     let reader = new FileReader();
+        //     let sha256 = CryptoJS.algo.SHA256.create();
+        //
+        //     reader.onload = function (e) {
+        //         sha256.update(e.target.result);
+        //         currentChunk += 1;
+        //         if (currentChunk < chunks) {
+        //             loadNext();
+        //         } else {
+        //             console.log("Finished loading, file: " + file.name);
+        //             // let hash = CryptoJS.SHA256(data).toString();
+        //             let hash = sha256.finalize();
+        //             console.log("hash: " + hash);
+        //             console.log("结束: " + getTime());
+        //         }
+        //     };
+        //     reader.onabort = function () {
+        //         console.log("读取文件发生中断");
+        //     };
+        //     reader.onerror = function (e) {
+        //         console.log("读取文件发生错误", e);
+        //     };
+        //     reader.onprogress = function () {
+        //         console.log("正在计算...");
+        //     };
+        //
+        //     function loadNext() {
+        //         let start = currentChunk * chunkSize;
+        //         let end = start + chunkSize >= file.size ? file.size : start + chunkSize;
+        //
+        //         reader.readAsArrayBuffer(slice.call(file, start, end));
+        //         // reader.readAsText(slice.call(file, start, end));
+        //         // reader.readAsBinaryString(slice.call(file, start, end));
+        //     }
+        //
+        //     loadNext();
+        //
+        // }
 
-        }
-
-        function arrayBufferToWordArray(arrayBuffer) {
-            let fullWords = Math.floor(arrayBuffer.byteLength / 4);
-            let bytesLeft = arrayBuffer.byteLength % 4;
-
-            let u32 = new Uint32Array(arrayBuffer, 0, fullWords);
-            let u8 = new Uint8Array(arrayBuffer);
-
-            let cp = [];
-            for (let i = 0; i < fullWords; ++i) {
-                cp.push(swapendian32(u32[i]));
-            }
-
-            if (bytesLeft) {
-                let pad = 0;
-                for (let i = bytesLeft; i > 0; --i) {
-                    pad = pad << 8;
-                    pad += u8[u8.byteLength - i];
-                }
-
-                for (let i = 0; i < 4 - bytesLeft; ++i) {
-                    pad = pad << 8;
-                }
-
-                cp.push(pad);
-            }
-            return CryptoJS.lib.WordArray.create(cp, arrayBuffer.byteLength);
-        }
 
         function getTime() {
             let time = new Date();
             return time.getHours() + "时" + time.getMinutes() + "分" + time.getSeconds() + "秒" + time.getMilliseconds() + "毫秒";
         }
     }
-
-    //参考：http://www.atool.org/file_hash.php
 </script>
 </body>
 </html>
