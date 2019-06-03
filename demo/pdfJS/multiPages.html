@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <#include "/common/keyWordsAndTitle.htm" parse=true encoding="UTF-8" >
+    <link rel="stylesheet" href="${basePath}static/layui/css/layui.css?${staticResourceVersion}">
+    <link rel="stylesheet" href="${basePath}static/css/notarypaper/layui-reset.css?${staticResourceVersion}">
+    <link rel="stylesheet" href="${basePath}static/css/notarypaper/common.css?${staticResourceVersion}">
+    <link rel="stylesheet" href="${basePath}static/css/notarypaper/modal.css?${staticResourceVersion}">
+    <style>
+        .pdf-container-button{
+            position: fixed;
+            top:0;
+            width:100%;
+            text-align: left;
+            display: none;
+        }
+        .pdf-container-button button{
+            margin: 10px 0 0 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="pdf-container" onmouseenter="showButton()" onmouseleave="hideButton()">
+    <div style="text-align: center;">
+        <div class="pdf-container-button">
+            <button class="layui-button" onclick="magnify()">放大</button>
+            <button class="layui-button" onclick="shrink()">缩小</button>
+            <button class="layui-button" onclick="toRotate()">顺时针旋转90°</button>
+        </div>
+        <div id="content"></div>
+    </div>
+</div>
+
+
+<script src="${basePath}static/layui/layui.all.js?${staticResourceVersion}"></script>
+<script src="${basePath}static/js/jquery-3.2.1.min.js?${staticResourceVersion}"></script>
+<script src="${basePath}static/js/notarypaper/common.js?${staticResourceVersion}"></script>
+<script src="${basePath}static/h5/js/pdf.js?${staticResourceVersion}"></script>
+<script>
+    var pdfId = "${pdfId!}";
+    var url = "${basePath}checkECertificate/showPDF.do?pdfId=" + encodeURI(pdfId);
+    PDFJS.workerSrc = '${basePath}static/h5/js/pdf.worker.js?${staticResourceVersion}';
+
+    if (1080 > window.screen.height || 1920 > window.screen.width) {
+        console.log("屏幕分辨率低于1080P");
+    }
+
+    var pdfDoc = null,
+        pageRendering = false,
+        pageNumPending = null,
+        scale = 1,                  //设置pdf文本显示区域的缩放级别
+        rotate = 0,                 //设置pdf文本旋转的角度
+        pageNo = 1,
+        canvasDiv = document.getElementById("content"),
+        beginTime;
+
+    PDFJS.getDocument(url).then(function (data) {
+        console.log(data);
+        pdfDoc = data;
+        // var numPages = data.numPages;
+
+        doRenderPage();
+    }).catch(function (err) {
+        console.log("PDFJS获取文档出错,err:" + err);
+    });
+
+    // 放大
+    function magnify(){
+        scale += 0.1;
+        doRenderPage();
+    }
+
+    // 缩小
+    function shrink(){
+        if(scale > 0){
+            scale -= 0.1;
+        }else{
+            layer.msg("无法再缩小了!");
+            return;
+        }
+        doRenderPage();
+    }
+
+    // 旋转90°
+    function toRotate(){
+        rotate += 90;
+        if(rotate === 360 || rotate === -360){
+            rotate = 0;
+        }
+        doRenderPage();
+    }
+
+    // 渲染--排队
+    // function queueRenderPage(pageNo){
+    //     if (pageRendering) {
+    //         pageNumPending = pageNo;
+    //     } else {
+    //         renderPage(pageNo);
+    //     }
+    // }
+
+    function doRenderPage(){
+        beginTime = new Date().getTime();
+        canvasDiv.innerHTML = "";
+        for ( var i = 1 ; i <= pdfDoc.numPages ; i++){
+            renderPage(i);
+        }
+    }
+
+    // 渲染canvas
+    function renderPage(num){
+        pageRendering = true;
+
+        pdfDoc.getPage(num).then(function (page) {
+            var canvas = document.createElement('canvas');
+            canvasDiv.appendChild(canvas);
+            canvasDiv.appendChild(document.createElement('hr'));
+
+            var ctx = canvas.getContext('2d');
+            var viewport = page.getViewport(scale,rotate);
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            // 将PDF文件渲染进入canvas中
+            var renderContext = {
+                canvasContext: ctx,
+                viewport: viewport
+            };
+            var renderTask = page.render(renderContext);
+
+            // 等待渲染结束
+            renderTask.promise.then(function () {
+                pageRendering = false;
+                if (pageNumPending !== null) {
+                    // New page rendering is pending
+                    renderPage(pageNumPending);
+                    pageNumPending = null;
+                }else{
+                    var endTime = new Date().getTime();
+                    var useTime = (endTime - beginTime) / 1000;
+                    console.log("渲染结束，耗时：" + useTime + "s");
+                }
+            })
+        })
+    }
+
+    function showButton(){
+        $(".pdf-container-button").show();
+    }
+
+    function hideButton(){
+        $(".pdf-container-button").hide();
+    }
+
+</script>
+</body>
+</html>
